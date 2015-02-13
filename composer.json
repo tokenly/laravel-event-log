@@ -1,0 +1,22 @@
+{
+    "name": "tokenly/laravel-event-log",
+    "description": "An event logger for Laravel.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Devon Weller",
+            "email": "devon@tokenly.co",
+            "homepage": "http://tokenly.co"
+        }
+    ],
+    "require": {
+        "php": ">=5.5.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "~4"
+    },
+    "autoload": {
+        "psr-0": {"Tokenly\\LaravelEventLog": "src"}
+    }
+}
