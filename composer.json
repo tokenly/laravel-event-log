@@ -1,6 +1,6 @@
 {
     "name": "tokenly/laravel-event-log",
-    "description": "An event logger for Laravel.",
+    "description": "An event logger provider for Laravel.",
     "type": "library",
     "license": "MIT",
     "authors": [
