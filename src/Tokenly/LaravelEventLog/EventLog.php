@@ -14,19 +14,10 @@ class EventLog {
     }
 
 
-    public function log($event, $raw_data, $array_keys_only=null, $other_columns=null) {
+    public function log($event, $raw_data, $array_keys_only=null) {
         try {
-            if ($array_keys_only) {
-                $data = [];
-                foreach($array_keys_only as $array_key) {
-                    $data[$array_key] = $raw_data[$array_key];
-                }
-            } else {
-                $data = $raw_data;
-            }
-
             // write to laravel log
-            Log::info(''.$event." ".str_replace('\n', "\n", json_encode($data, 192)));
+            Log::info($this->buildLogText($event, $raw_data, $array_keys_only));
         } catch (RuntimeException $e) {
             Log::error("RuntimeException in ".$e->getFile()." at line ".$e->getLine());
         } catch (Exception $e) {
@@ -53,8 +44,20 @@ class EventLog {
             $raw_data = array_merge($raw_data, $additional_error_data);
         }
 
-        $this->log($event, $raw_data);
+        Log::error($this->buildLogText($event, $raw_data));
     }
 
+    protected function buildLogText($event, $raw_data, $array_keys_only=null) {
+        if ($array_keys_only) {
+            $data = [];
+            foreach($array_keys_only as $array_key) {
+                $data[$array_key] = $raw_data[$array_key];
+            }
+        } else {
+            $data = $raw_data;
+        }
+
+        return $event." ".str_replace('\n', "\n", json_encode($data, 192));
+    }
 
 }
