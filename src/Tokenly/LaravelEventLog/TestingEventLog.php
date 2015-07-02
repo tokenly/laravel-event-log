@@ -14,6 +14,11 @@ class TestingEventLog extends EventLog {
         return parent::log($event, $raw_data, $array_keys_only, $other_columns);
     }
 
+    public function logError($event, $error_or_data, $additional_error_data=null) {
+        $this->logged_events[] = ['event' => $event, 'data' => $error_or_data, ];
+        return parent::logError($event, $error_or_data, $additional_error_data);
+    }
+
     public function getLoggedEvents() {
         return $this->logged_events;
     }
