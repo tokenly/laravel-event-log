@@ -71,9 +71,9 @@ class EventLog {
 
         } catch (Exception $e) {
             if ($e instanceof RuntimeException) {
-                $msg = "RuntimeException in ".$e->getFile()." at line ".$e->getLine();
+                $msg = "RuntimeException for event $event in ".$e->getFile()." at line ".$e->getLine();
             } else {
-                $msg = "Exception (".$e->getCode().") ".$e->getMessage()." in ".$e->getFile()." at line ".$e->getLine();
+                $msg = "Exception (".$e->getCode().") for event $event ".$e->getMessage()." in ".$e->getFile()." at line ".$e->getLine();
             }
 
             // log error
@@ -128,6 +128,9 @@ class EventLog {
         } else {
             if (is_array($raw_data)) {
                 $filtered_data = $raw_data;
+            } else if (is_object($raw_data)) {
+                $filtered_data = json_decode(json_encode($raw_data), true);
+                if (!$filtered_data) { throw new Exception("Unable to decode object of type ".get_class($raw_data), 1); }
             } else {
                 // assume raw_data is just a string
                 $filtered_data = ['msg' => (string) $raw_data];
