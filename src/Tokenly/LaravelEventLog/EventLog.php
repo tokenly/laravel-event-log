@@ -96,7 +96,7 @@ class EventLog {
                 'file'  => $e->getFile(),
             ];
         } else {
-            $raw_data = $error_or_data;
+            $raw_data = $this->filterLogData($error_or_data, null, 'error');
         }
 
         // merge extra data
@@ -119,7 +119,7 @@ class EventLog {
         return $event." ".str_replace('\n', "\n", json_encode($data, 192));
     }
 
-    protected function filterLogData($raw_data, $array_filter_keys=null) {
+    protected function filterLogData($raw_data, $array_filter_keys=null, $error_key='msg') {
         if ($array_filter_keys !== null) {
             $filtered_data = [];
             foreach($array_filter_keys as $array_key) {
@@ -133,7 +133,7 @@ class EventLog {
                 if (!$filtered_data) { throw new Exception("Unable to decode object of type ".get_class($raw_data), 1); }
             } else {
                 // assume raw_data is just a string
-                $filtered_data = ['msg' => (string) $raw_data];
+                $filtered_data = [$error_key => (string) $raw_data];
             }
         }
 
@@ -141,6 +141,10 @@ class EventLog {
     }
 
     protected function buildLogJSON($level_name, $event, $data) {
+        if (!is_array($data)) {
+            throw new Exception("Unexpected data type (".gettype($data).") for ".(is_object($data) ? get_class($data) : substr(json_encode($data), 0, 200))." for event $event", 1);
+        }
+
         $json = array_merge([
             'name'  => $event,
             'ts'    => intval(microtime(true) * 1000),

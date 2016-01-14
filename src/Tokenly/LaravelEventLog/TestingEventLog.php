@@ -8,10 +8,10 @@ class TestingEventLog extends EventLog {
 
     protected $logged_events = [];
 
-    public function log($event, $raw_data, $array_keys_only=null, $other_columns=null) {
+    public function log($event, $raw_data, $array_filter_keys=null, $level_name=null, $as_text=true, $as_json=true) {
         $this->logged_events[] = ['event' => $event, 'data' => $raw_data, ];
 
-        return parent::log($event, $raw_data, $array_keys_only, $other_columns);
+        return parent::log($event, $raw_data, $array_filter_keys, $level_name, $as_text, $as_json);
     }
 
     public function logError($event, $error_or_data, $additional_error_data=null) {
