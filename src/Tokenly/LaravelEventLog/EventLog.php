@@ -145,6 +145,16 @@ class EventLog {
             throw new Exception("Unexpected data type (".gettype($data).") for ".(is_object($data) ? get_class($data) : substr(json_encode($data), 0, 200))." for event $event", 1);
         }
 
+        // rename name, ts, level and event
+        $raw_data = $data;
+        foreach (['name', 'ts', 'level', 'event'] as $reserved_name) {
+            if (isset($data[$reserved_name])) {
+                // event to originalEvent
+                $data['original'.ucfirst($reserved_name)] = $data[$reserved_name];
+                unset($data[$reserved_name]);
+            }
+        }
+
         $json = array_merge([
             'name'  => $event,
             'ts'    => intval(microtime(true) * 1000),
