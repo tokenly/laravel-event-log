@@ -155,6 +155,14 @@ class EventLog {
             }
         }
 
+        // flatten data
+        $flattened_data = [];
+        foreach($data as $data_key => $data_val) {
+            $data_val = $this->flatten($data_val);
+            $flattened_data[$data_key] = $data_val;
+        }
+        $data = $flattened_data;
+
         $json = array_merge([
             'name'  => $event,
             'ts'    => intval(microtime(true) * 1000),
@@ -163,6 +171,23 @@ class EventLog {
         ], $data);
 
         return $json;
+    }
+
+    protected function flatten($val) {
+        if (!is_array($val)) { return $val; }
+
+        $is_numeric = !(count(array_filter(array_keys($val), 'is_string')) > 0);
+        if ($is_numeric) {
+            $flattened = '';
+            foreach($val as $child_val) {
+                $flattened .= $this->flatten($child_val).", ";
+            }
+            $val = rtrim(rtrim($flattened), ',');
+        } else {
+            // multi-dimensional array - just use JSON
+            $val = json_encode($val);
+        }
+        return $val;
     }
 
     protected function writeToJSONLog($json_data) {
