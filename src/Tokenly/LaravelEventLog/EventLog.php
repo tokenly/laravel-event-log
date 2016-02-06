@@ -4,6 +4,7 @@ namespace Tokenly\LaravelEventLog;
 
 
 use Exception;
+use Illuminate\Http\Exception\HttpResponseException;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
@@ -89,8 +90,18 @@ class EventLog {
     public function logError($event, $error_or_data, $additional_error_data=null) {
         if ($error_or_data instanceof Exception) {
             $e = $error_or_data;
+            if ($e instanceof HttpResponseException) {
+                $err_json = json_decode($e->getResponse()->getContent(), true);
+                if (is_array($err_json)) {
+                    $error_message = isset($err_json['message']) ? $err_json['message'] : (isset($err_json['error']) ? $err_json['error'] : $e->getResponse()->getContent());
+                } else {
+                    $error_message = $e->getResponse()->getContent();
+                }
+            } else {
+                $error_message = $e->getMessage();
+            }
             $raw_data = [
-                'error' => $e->getMessage(),
+                'error' => $error_message,
                 'code'  => $e->getCode(),
                 'line'  => $e->getLine(),
                 'file'  => $e->getFile(),
