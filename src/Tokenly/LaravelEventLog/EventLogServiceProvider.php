@@ -15,7 +15,7 @@ class EventLogServiceProvider extends ServiceProvider {
                 $json_log_path = $app->storagePath().'/logs/'.env('JSON_LOG_NAME', 'log.json');
             }
 
-            return new EventLog($json_log_path);
+            return new EventLog(app('Illuminate\Log\Writer'), $json_log_path);
         });
 
 

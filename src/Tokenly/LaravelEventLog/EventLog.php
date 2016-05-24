@@ -5,7 +5,7 @@ namespace Tokenly\LaravelEventLog;
 
 use Exception;
 use Illuminate\Http\Exception\HttpResponseException;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Log\Writer;
 use RuntimeException;
 
 class EventLog {
@@ -25,7 +25,8 @@ class EventLog {
         'emergency' => 600,
     ];
 
-    public function __construct($json_log_path=null) {
+    public function __construct(Writer $log_writer, $json_log_path=null) {
+        $this->log_writer    = $log_writer;
         $this->write_json    = ($json_log_path !== null);
         $this->json_log_path = $json_log_path;
     }
@@ -62,7 +63,7 @@ class EventLog {
 
             // write to laravel log
             if ($as_text) {
-                Log::log($level_name, $this->buildLogText($event, $data));
+                $this->log_writer->log($level_name, $this->buildLogText($event, $data));
             }
 
             // write to json log
@@ -78,7 +79,7 @@ class EventLog {
             }
 
             // log error
-            Log::error($msg);
+            $this->log_writer->error($msg);
 
             // write to json log
             if ($this->write_json) {
@@ -115,7 +116,7 @@ class EventLog {
             $raw_data = array_merge($raw_data, $additional_error_data);
         }
 
-        Log::error($this->buildLogText($event, $raw_data));
+        $this->log_writer->error($this->buildLogText($event, $raw_data));
 
         // write to json log
         if ($this->write_json) {
