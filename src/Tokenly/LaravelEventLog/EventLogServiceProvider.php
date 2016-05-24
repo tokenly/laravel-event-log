@@ -18,6 +18,12 @@ class EventLogServiceProvider extends ServiceProvider {
             return new EventLog($json_log_path);
         });
 
+
+        $this->app->bind('api.logApiCalls', function($app) {
+            return $app->make('Tokenly\LaravelEventLog\Middleware\LogAPICalls');
+        });
+
+
     }
 
 
