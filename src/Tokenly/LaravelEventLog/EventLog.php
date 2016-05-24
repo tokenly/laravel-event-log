@@ -166,10 +166,24 @@ class EventLog {
             }
         }
 
-        // flatten data
+
+        // flatten and cast data
+        $casts = [
+            'time' => 'integer',
+        ];
         $flattened_data = [];
         foreach($data as $data_key => $data_val) {
             $data_val = $this->flatten($data_val);
+
+            // cast
+            if (isset($casts[$data_key])) {
+                switch ($casts[$data_key]) {
+                    case 'integer':
+                        $data_val = intval($data_val);
+                        break;
+                }
+            }
+
             $flattened_data[$data_key] = $data_val;
         }
         $data = $flattened_data;
