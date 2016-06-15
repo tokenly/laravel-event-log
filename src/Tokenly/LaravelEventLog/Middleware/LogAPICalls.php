@@ -3,7 +3,9 @@
 namespace Tokenly\LaravelEventLog\Middleware;
 
 use Closure;
+use Exception;
 use Tokenly\LaravelEventLog\Facade\EventLog;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class LogAPICalls {
 
@@ -50,7 +52,20 @@ class LogAPICalls {
         $begin_log_vars['inputBodySize'] = $body_size;
         EventLog::debug('apiCall.begin', $begin_log_vars);
 
-        $response = $next($request);
+        // ------------------------------------------------------------------------
+        // Execute the next closure
+
+        $status_code = null;
+        $caught_exception = null;
+        try {
+            $response = $next($request);
+            $status_code = $response->getStatusCode();
+        } catch (Exception $e) {
+            $caught_exception = $e;
+
+            $status_code = 500;
+            if ($e instanceof HttpException) { $status_code = $e->getStatusCode(); }
+        }
 
         // ------------------------------------------------------------------------
         // Log after call
@@ -60,15 +75,18 @@ class LogAPICalls {
             'route'      => $begin_log_vars['route'],
             'uri'        => $begin_log_vars['uri'],
             'parameters' => $begin_log_vars['parameters'],
-            'status'     => $response->getStatusCode(),
+            'status'     => $status_code,
         ];
 
-        if ($response->isServerError() OR $response->isClientError()) {
+        if ($caught_exception !== null) {
+            // log the exception and then throw the error again
+            EventLog::logError('apiCall.end', $caught_exception, $end_log_vars);
+            throw $caught_exception;            
+        } else if ($response->isServerError() OR $response->isClientError()) {
             EventLog::warning('apiCall.end', $end_log_vars);
         } else {
             EventLog::debug('apiCall.end', $end_log_vars);
         }
-
 
         return $response;
     }
