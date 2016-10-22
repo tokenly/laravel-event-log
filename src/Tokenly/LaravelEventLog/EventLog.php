@@ -106,6 +106,7 @@ class EventLog {
                 'code'  => $e->getCode(),
                 'line'  => $e->getLine(),
                 'file'  => $e->getFile(),
+                'trace' => $this->buildShortTrace($e),
             ];
         } else {
             $raw_data = $this->filterLogData($error_or_data, null, 'error');
@@ -115,6 +116,7 @@ class EventLog {
         if ($additional_error_data !== null) {
             $raw_data = array_merge($raw_data, $additional_error_data);
         }
+
 
         $this->log_writer->error($this->buildLogText($event, $raw_data));
 
@@ -227,6 +229,31 @@ class EventLog {
     protected function openJSONLog($json_log_path) {
         $stream = fopen($json_log_path, 'a');
         return $stream;
+    }
+
+    // ------------------------------------------------------------------------
+
+    protected function buildShortTrace(Exception $e, $limit=6) {
+        try {
+            $offset = 0;
+            $out = '';
+            foreach ($e->getTrace() as $trace_entry) {
+                $json_encoded_args = json_encode($trace_entry['args']);
+
+                $out = $out
+                    .($offset == 0 ? '' : "\n")
+                    .(isset($trace_entry['file']) ? basename($trace_entry['file']) : '[unknown file]').", "
+                    .(isset($trace_entry['line']) ? $trace_entry['line'] : '[unknown line]').": "
+                    .(isset($trace_entry['class']) ? $trace_entry['class'].'::' : '')
+                    .$trace_entry['function']
+                    ."(".substr($json_encoded_args, 0, 90).(strlen($json_encoded_args > 90) ? '...' : '').")";
+
+                if (++$offset >= $limit) { break; }
+            }
+            return $out;
+        } catch (Exception $e) {
+            return "Error building trace: ".$e->getError();
+        }
     }
 
 }
