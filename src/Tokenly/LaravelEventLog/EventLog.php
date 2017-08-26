@@ -238,7 +238,7 @@ class EventLog {
             $offset = 0;
             $out = '';
             foreach ($e->getTrace() as $trace_entry) {
-                $json_encoded_args = json_encode($trace_entry['args']);
+                $json_encoded_args = json_encode($trace_entry['args'] ?? null);
 
                 $out = $out
                     .($offset == 0 ? '' : "\n")
