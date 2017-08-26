@@ -252,7 +252,7 @@ class EventLog {
             }
             return $out;
         } catch (Exception $e) {
-            return "Error building trace: ".$e->getError();
+            return "Error building trace: ".$e->getMessage();
         }
     }
 
