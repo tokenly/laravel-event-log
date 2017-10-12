@@ -4,7 +4,7 @@ namespace Tokenly\LaravelEventLog;
 
 
 use Exception;
-use Illuminate\Http\Exception\HttpResponseException;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Log\Writer;
 use RuntimeException;
 
