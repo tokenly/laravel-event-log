@@ -35,7 +35,7 @@ class LogAPICalls {
 
         $route = $request->route();
         if ($route) {
-            $route_uri = $route->getUri();
+            $route_uri = $route->uri();
             $route_name = $route->getName();
             $route_params = $route->parameters();
         } else {
