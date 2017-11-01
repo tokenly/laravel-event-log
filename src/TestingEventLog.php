@@ -2,8 +2,6 @@
 
 namespace Tokenly\LaravelEventLog;
 
-use Illuminate\Support\Facades\Log;
-
 class TestingEventLog extends EventLog {
 
     protected $logged_events = [];

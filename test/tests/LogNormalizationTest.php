@@ -2,12 +2,13 @@
 
 use Illuminate\Log\Writer;
 use Tokenly\LaravelEventLog\EventLog;
-use \PHPUnit_Framework_Assert as PHPUnit;
+use PHPUnit\Framework\Assert as PHPUnit;
+use PHPUnit\Framework\TestCase;
 
 /*
 * 
 */
-class LogNormalizationTest extends \PHPUnit_Framework_TestCase
+class LogNormalizationTest extends TestCase
 {
 
 
@@ -26,21 +27,6 @@ class LogNormalizationTest extends \PHPUnit_Framework_TestCase
         PHPUnit::assertEquals('foo.bar2', $json_data['name']);
         PHPUnit::assertEquals('hello world', $json_data['event']['key1']);
         PHPUnit::assertEquals('blah', $json_data['event']['key2']);
-
-        // name rewrite
-        list($event_log, $el_params) = $this->initLog();
-        $event_log->debug('foo.bar3', ['name' => 'rename me', 'key2' => 'blah',]);
-        $json_data = $this->readJsonFileData($el_params);
-        PHPUnit::assertEquals('foo.bar3', $json_data['name']);
-        PHPUnit::assertEquals('rename me', $json_data['event']['originalName']);
-
-        // integer cast
-        list($event_log, $el_params) = $this->initLog();
-        $event_log->debug('foo.bar4', ['time' => '123xxx',]);
-        $json_data = $this->readJsonFileData($el_params);
-        PHPUnit::assertEquals('foo.bar4', $json_data['name']);
-        PHPUnit::assertEquals(123, $json_data['event']['time']);
-
     }
 
 
@@ -52,25 +38,27 @@ class LogNormalizationTest extends \PHPUnit_Framework_TestCase
         $monolog_logger = new Monolog\Logger('testing');
         $test_handler = new Monolog\Handler\TestHandler();
         $monolog_logger->pushHandler($test_handler);
-        $event_log = new EventLog(new Writer($monolog_logger), $tmp_filename);
+        $event_log = new EventLog(new Writer($monolog_logger));
         return [
             $event_log,
             [
-                'handler'      => $test_handler,
-                'tmp_filename' => $tmp_filename,
+                'handler' => $test_handler
             ]
         ];
     }
 
     protected function readJsonFileData($el_params) {
-        $fd = fopen($el_params['tmp_filename'], 'r');
-        rewind($fd);
-        $contents = fread($fd, filesize($el_params['tmp_filename']));
-        fclose($fd);
-        $json_data = json_decode($contents, true);
-        if ($json_data === null) {
-            throw new Exception("Failed to decode contents: $contents", 1);
-        }
+        $test_handler = $el_params['handler'];
+        $records = $test_handler->getRecords();
+        $raw = $records[0]['message'];
+        $json_start_pos = strpos($raw, '{');
+        $name = substr($raw, 0, $json_start_pos - 1);
+        $event = json_decode(substr($raw, $json_start_pos), true);
+
+        $json_data = [
+            'name'  => $name,
+            'event' => $event,
+        ];
         return $json_data;
     }
 }

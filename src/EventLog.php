@@ -10,10 +10,6 @@ use RuntimeException;
 
 class EventLog {
 
-    protected $write_json      = false;
-    protected $json_log_path   = null;
-    protected $json_log_stream = null;
-
     protected $levels = [
         'debug'     => 100,
         'info'      => 200,
@@ -25,10 +21,8 @@ class EventLog {
         'emergency' => 600,
     ];
 
-    public function __construct(Writer $log_writer, $json_log_path=null) {
-        $this->log_writer    = $log_writer;
-        $this->write_json    = ($json_log_path !== null);
-        $this->json_log_path = $json_log_path;
+    public function __construct(Writer $log_writer) {
+        $this->log_writer = $log_writer;
     }
 
 
@@ -44,6 +38,9 @@ class EventLog {
         return $this->log($event, $raw_data, $array_filter_keys, 'warning');
     }
 
+    // alias of warning
+    public function warn($event, $raw_data, $array_filter_keys=null) { return $this->warning($event, $raw_data, $array_filter_keys); }
+
     public function error($event, $raw_data, $array_filter_keys=null) {
         return $this->log($event, $raw_data, $array_filter_keys, 'error');
     }
@@ -52,25 +49,13 @@ class EventLog {
         return $this->log($event, $raw_data, $array_filter_keys, 'critical');
     }
 
-    public function jsonLog($level_name, $event, $raw_data=[], $array_filter_keys=null) {
-        return $this->log($event, $raw_data, $array_filter_keys, $level_name, false, true);
-    }
-
-    public function log($event, $raw_data, $array_filter_keys=null, $level_name=null, $as_text=true, $as_json=true) {
+    public function log($event, $raw_data, $array_filter_keys=null, $level_name=null) {
         if ($level_name === null) { $level_name = 'info'; }
         try {
             $data = $this->filterLogData($raw_data, $array_filter_keys);
 
             // write to laravel log
-            if ($as_text) {
-                $this->log_writer->log($level_name, $this->buildLogText($event, $data));
-            }
-
-            // write to json log
-            if ($this->write_json AND $as_json) {
-                $this->writeToJSONLog($this->buildLogJSON($level_name, $event, $data));
-            }
-
+            $this->log_writer->log($level_name, $this->buildLogText($event, $data));
         } catch (Exception $e) {
             if ($e instanceof RuntimeException) {
                 $msg = "RuntimeException for event $event in ".$e->getFile()." at line ".$e->getLine();
@@ -80,11 +65,6 @@ class EventLog {
 
             // log error
             $this->log_writer->error($msg);
-
-            // write to json log
-            if ($this->write_json) {
-                $this->writeToJSONLog($this->buildLogJSON('error', 'error.log', ['msg' => $msg, 'code' => $e->getCode(), 'line' => $e->getLine(), 'file' => $e->getFile()]));
-            }
         }
     }
 
@@ -117,19 +97,12 @@ class EventLog {
             $raw_data = array_merge($raw_data, $additional_error_data);
         }
 
-
         $this->log_writer->error($this->buildLogText($event, $raw_data));
-
-        // write to json log
-        if ($this->write_json) {
-            $this->writeToJSONLog($this->buildLogJSON('error', $event, $raw_data));
-        }
     }
 
     // ------------------------------------------------------------------------
 
     protected function buildLogText($event, $data) {
-
         return $event." ".str_replace('\n', "\n", json_encode($data, 192));
     }
 
@@ -154,53 +127,6 @@ class EventLog {
         return $filtered_data;
     }
 
-    protected function buildLogJSON($level_name, $event, $data) {
-        if (!is_array($data)) {
-            throw new Exception("Unexpected data type (".gettype($data).") for ".(is_object($data) ? get_class($data) : substr(json_encode($data), 0, 200))." for event $event", 1);
-        }
-
-        // rename name, ts, level and event
-        $raw_data = $data;
-        foreach (['name', 'ts', 'level', 'event'] as $reserved_name) {
-            if (isset($data[$reserved_name])) {
-                // event to originalEvent
-                $data['original'.ucfirst($reserved_name)] = $data[$reserved_name];
-                unset($data[$reserved_name]);
-            }
-        }
-
-
-        // flatten and cast data
-        $casts = [
-            'time' => 'integer',
-        ];
-        $flattened_data = [];
-        foreach($data as $data_key => $data_val) {
-            $data_val = $this->flatten($data_val);
-
-            // cast
-            if (isset($casts[$data_key])) {
-                switch ($casts[$data_key]) {
-                    case 'integer':
-                        $data_val = intval($data_val);
-                        break;
-                }
-            }
-
-            $flattened_data[$data_key] = $data_val;
-        }
-        $data = $flattened_data;
-
-        $json = array_merge([
-            'name'  => $event,
-            'ts'    => intval(microtime(true) * 1000),
-            'level' => isset($this->levels[$level_name]) ? $this->levels[$level_name] : 0,
-            'event' => $data,
-        ], $data);
-
-        return $json;
-    }
-
     protected function flatten($val) {
         if (!is_array($val)) { return $val; }
 
@@ -216,19 +142,6 @@ class EventLog {
             $val = json_encode($val);
         }
         return $val;
-    }
-
-    protected function writeToJSONLog($json_data) {
-        if (!is_resource($this->json_log_stream)) {
-            $this->json_log_stream = $this->openJSONLog($this->json_log_path);
-        }
-
-        fwrite($this->json_log_stream, json_encode($json_data, JSON_FORCE_OBJECT | JSON_UNESCAPED_SLASHES).PHP_EOL);
-    }
-
-    protected function openJSONLog($json_log_path) {
-        $stream = fopen($json_log_path, 'a');
-        return $stream;
     }
 
     // ------------------------------------------------------------------------
