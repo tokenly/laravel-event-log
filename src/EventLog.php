@@ -5,6 +5,7 @@ namespace Tokenly\LaravelEventLog;
 
 use Exception;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class EventLog {
@@ -20,8 +21,8 @@ class EventLog {
         'emergency' => 600,
     ];
 
-    public function __construct($log_writer) {
-        $this->log_writer = $log_writer;
+    public function __construct() {
+        $this->log_writer = Log::getFacadeRoot();
     }
 
 
