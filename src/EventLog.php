@@ -7,6 +7,7 @@ use Exception;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
+use Tokenly\LaravelEventLog\Util\ExceptionTraceBuilder;
 
 class EventLog {
 
@@ -25,6 +26,10 @@ class EventLog {
         $this->log_writer = Log::getFacadeRoot();
     }
 
+    public function setLogWriter($log_writer)
+    {
+        $this->log_writer = $log_writer;
+    }
 
     public function debug($event, $raw_data, $array_filter_keys=null) {
         return $this->log($event, $raw_data, $array_filter_keys, 'debug');
@@ -81,12 +86,16 @@ class EventLog {
             } else {
                 $error_message = $e->getMessage();
             }
+
+            $builder = app(ExceptionTraceBuilder::class);
+            $original_exception = $builder->getOriginalException($e);
+
             $raw_data = [
                 'error' => $error_message,
-                'code'  => $e->getCode(),
-                'line'  => $e->getLine(),
-                'file'  => $e->getFile(),
-                'trace' => $this->buildShortTrace($e),
+                'code'  => $original_exception->getCode(),
+                'line'  => $original_exception->getLine(),
+                'file'  => $original_exception->getFile(),
+                'trace' => $builder->buildShortTrace($e),
             ];
         } else {
             $raw_data = $this->filterLogData($error_or_data, null, 'error');
@@ -103,7 +112,7 @@ class EventLog {
     // ------------------------------------------------------------------------
 
     protected function buildLogText($event, $data) {
-        return $event." ".str_replace('\n', "\n", json_encode($data, 192));
+        return $event." ".json_encode($data, 192);
     }
 
     protected function filterLogData($raw_data, $array_filter_keys=null, $error_key='msg') {
@@ -144,29 +153,5 @@ class EventLog {
         return $val;
     }
 
-    // ------------------------------------------------------------------------
-
-    protected function buildShortTrace(Exception $e, $limit=6) {
-        try {
-            $offset = 0;
-            $out = '';
-            foreach ($e->getTrace() as $trace_entry) {
-                $json_encoded_args = json_encode($trace_entry['args'] ?? null);
-
-                $out = $out
-                    .($offset == 0 ? '' : "\n")
-                    .(isset($trace_entry['file']) ? basename($trace_entry['file']) : '[unknown file]').", "
-                    .(isset($trace_entry['line']) ? $trace_entry['line'] : '[unknown line]').": "
-                    .(isset($trace_entry['class']) ? $trace_entry['class'].'::' : '')
-                    .$trace_entry['function']
-                    ."(".substr($json_encoded_args, 0, 90).(strlen($json_encoded_args > 90) ? '...' : '').")";
-
-                if (++$offset >= $limit) { break; }
-            }
-            return $out;
-        } catch (Exception $e) {
-            return "Error building trace: ".$e->getMessage();
-        }
-    }
 
 }
