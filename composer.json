@@ -15,8 +15,8 @@
     },
     "require-dev": {
         "phpunit/phpunit": "~7",
-        "monolog/monolog": "^1.23",
-        "illuminate/log": "^5.8"
+        "monolog/monolog": "^2",
+        "illuminate/log": "^6"
     },
     "autoload": {
         "psr-4": {"Tokenly\\LaravelEventLog\\": "src"}
